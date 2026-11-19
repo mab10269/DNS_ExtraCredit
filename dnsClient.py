@@ -10,7 +10,7 @@ import struct
 def dns_query(type, name, server):
     # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_address = (server, ????) # Enter Port Number
+    server_address = (server, 55) # Enter Port Number
 
     # Create the DNS query
     ID = 0x1234
@@ -27,91 +27,23 @@ def dns_query(type, name, server):
     NSCOUNT = 0
     ARCOUNT = 0
 
-        # The DNS header is fixed-size: 12 bytes total.
-        # It consists of six 16-bit fields, stored in network byte order
-        # (big-endian: most significant byte first).
-        #
-        # Some fields, like MessageID and QDCount, use all 16 bits directly.
-        # The Flags field is also 16 bits, but it is divided into smaller pieces:
-        # QR, Opcode, AA, TC, RD, RA, Z, and RCODE.
-        #
-        # To create the Flags field, each smaller value must be moved into its
-        # correct bit position using left shifts (<<). The shifted values are then
-        # combined with bitwise OR (|) to produce one final 16-bit number.
-        #
-        # For example, QR appears as the leftmost bit in the diagram, which means it
-        # is the most significant bit of the 16-bit Flags field. In code, that is
-        # position 15, so QR is placed using qr << 15.
-        #
-        # Be careful: you are responsible for putting each value in the correct
-        # position before packing the header into bytes.
-        #
-        # In the diagram below, each row represents 16 bits (remember 8 bits = 1 byte).
-        # The numbers across the top are bit positions within each 16-bit row.
-        # The labeled boxes show the size and location of each DNS header field.
-
-        # DNS Header Format (12 bytes / 96 bits)
-        #
-        # 0  1  2  3  4  5  6  7  8  9  10 11 12 13 14 15
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        # |                      MessageID                 |
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-        # |QR|   Opcode    |AA|TC|RD|RA| Reserved | RCODE  |
-        # +--+--+--+--+--+--+--+--+--+--+--+--+--+--+------+ 
-        # |                    QDCount                     |
-        # +------+-----+-----+-----+-----+-----+-----+-----+
-        # |                    ANCount                     |
-        # +------+-----+-----+-----+-----+-----+-----+-----+
-        # |                    NSCount                     |
-        # +------+-----+-----+-----+-----+-----+-----+-----+
-        # |                    ARCount                     |
-        # +------+-----+-----+-----+-----+-----+-----+-----+
-
-
-        # Message ID: 16 bits
-        # QR (Query/Response): 1 bit
-        # Opcode: 4 bits
-        # AA (Authoritative Answer): 1 bit
-        # TC (Truncated): 1 bit
-        # RD (Recursion Desired): 1 bit
-        # RA (Recursion Available): 1 bit
-        # Z: 3 bits
-        # Rcode (Response Code): 4 bits
-        # QDCount (Question Count): 16 bits
-        # ANCount (Answer Count): 16 bits
-        # NSCount (Authority Count): 16 bits
-        # ARCount (Additional Count): 16 bits
+    header = struct.pack('!HHHHHH', ID, QR << 15 | OPCODE << 1 | AA << 10 | TC << 9 | RD << 8| RA << 7 | Z << 4' | RCODE, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT)
         
-        # Example: The QR field is located in the second byte of the DNS header, with its most significant bit being the leftmost bit of this byte. Since each byte contains 8 bits, shifting the value of the QR field left by 15 bits moves it to the correct position in the 16-bit value that represents the combination of several fields in the DNS header.
-
-    header = struct.pack('!HHHHHH', ID, QR << 15 | OPCODE << ?? | AA << ?? | TC << ?? | RD << ??| RA << ?? | Z << ?? | RCODE, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT)
-
-    # Encode the QNAME
-    
-        # To do so we need to split the incoming string into parts
-        
-        # For example www.nyu.edu would become:
-        # 1. www (length of 3)
-        # 2. nyu (length of 3)
-        # 3. edu (length of 3)
-        
-    qname_parts = name.split('????') # How can we easily split the string?
-    qname_encoded_parts = [struct.pack('B', len(part)) + part.encode('????') for part in qname_parts] # Make sure it's encoded as a sequence of the right character encoding type (lowercase)
-    qname_encoded = b''.join(qname_encoded_parts) + b'\x??' #enter the closing byte value to signify the end of the domain string (two digits)
-
-    # Encode the QTYPE and QCLASS
+    qname_parts = name.split('.')
+    qname_encoded_parts = [struct.pack('B', len(part)) + part.encode('ascii') for part in qname_parts]
+    qname_encoded = b''.join(qname_encoded_parts) + b'\x10'
 
     if type == 'A':
-        qtype = ?????     # Lookup the Resource Record value
+        qtype = 10     # Lookup the Resource Record value
     elif type == 'AAAA':
-        qtype = ?????     # Lookup the Resource Record value
+        qtype = 28
     else:
         raise ValueError('Invalid type')
     
 
-    qclass = ??     # Lookup the Resource Record class being requested
+    qclass = 1 
 
-        # This is the query we are asking the DNS Server
+          is the query we are asking the DNS Server
     question = qname_encoded + struct.pack('!HH', qtype, qclass)
 
     # Send the query to the server, remember we must always include our header alongside the question!
