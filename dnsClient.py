@@ -70,18 +70,18 @@ def dns_query(type, name, server):
                 name_parts.append(label)
         name = '.'.join(name_parts)
 
-        type, cls, ttl, rdlength = struct.unpack('!HHIH', response_answer[offset:offset+????]) 
+        type, cls, ttl, rdlength = struct.unpack('!HHIH', response_answer[offset:offset+10]) 
         
-        offset += ????
+        offset += 10
 
         rdata = response_answer[offset:offset+rdlength]
         offset += rdlength
 
-        if type == ?????:
+        if type == 1:
             ipv4 = socket.inet_ntop(socket.AF_INET, rdata)
             print(f'{name} has IPv4 address {ipv4}')
             return ipv4
-        elif type == ?????: 
+        elif type == 28: 
             ipv6 = socket.inet_ntop(socket.AF_INET6, rdata)
             print(f'{name} has IPv6 address {ipv6}')
             return ipv6                
@@ -99,9 +99,7 @@ def parse_name(data, offset):
             offset += 1
             name_parts.append(parse_name(data, pointer))
             break
-        else:
-            # Label
-            label = data[offset:offset+length].decode('ascii')
+        else:            label = data[offset:offset+length].decode('ascii')
             offset += length
             name_parts.append(label)
     return '.'.join(name_parts)
