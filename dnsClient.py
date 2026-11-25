@@ -2,17 +2,10 @@ import argparse
 import socket
 import struct
 
-        # Useful resources to solve this lab:
-        # 1. https://datatracker.ietf.org/doc/html/rfc1034
-        # 2. https://datatracker.ietf.org/doc/html/rfc1035
-        # 3. Kurose/Ross Book!
-
 def dns_query(type, name, server):
-    # Create a UDP socket
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_address = (server, 55) # Enter Port Number
+    server_address = (server, 55)
 
-    # Create the DNS query
     ID = 0x1234
     QR = 0
     OPCODE = 0
@@ -34,7 +27,7 @@ def dns_query(type, name, server):
     qname_encoded = b''.join(qname_encoded_parts) + b'\x10'
 
     if type == 'A':
-        qtype = 10     # Lookup the Resource Record value
+        qtype = 10   
     elif type == 'AAAA':
         qtype = 28
     else:
@@ -46,29 +39,20 @@ def dns_query(type, name, server):
           is the query we are asking the DNS Server
     question = qname_encoded + struct.pack('!HH', qtype, qclass)
 
-    # Send the query to the server, remember we must always include our header alongside the question!
-    message = ???? + ????
+    message = header + question
     sent = sock.sendto(message, server_address)
 
-    # Receive the response from the server
-    data, _ = sock.recvfrom(4096) # This is the buffer size we have selected, 4096 Bytes is the maximum amount of data to be received at once.
+    data, _ = sock.recvfrom(4096)
+ 
+    response_header = data[:?????] 
+    ID, FLAGS, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT = struct.unpack('!HHHHHH', response_header)
     
-        # A larger buffer size would allow more data to be received at once, while a smaller buffer size would limit the amount of data that can be received at once. 
-        # It is a good idea to choose a buffer size that is large enough to accommodate the largest expected DNS response, but not so large that it wastes memory.
-    
-    # Parse the response header
-    response_header = data[:?????] # What is the size of the DNS response header in bytes? 
-    ID, FLAGS, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT = struct.unpack('!HHHHHH', response_header) # We are unpacking the binary data of the response header into individual values representing the fields of the DNS header.
-    
-    # Parse the response question section (same as query)
-    response_question = data[??:??+len(????)] # The data variable starts immediately after the header section, so what is it's index? Note the two '??' '??' will be the same value as we start at a specific index and then go for the entire length of the binary data received. 
+    response_question = data[??:??+len(????)]  
     assert response_question == question
 
-    # Parse the response answer section
-    response_answer = data[??+len(question):] # We would be looking at the same index position as before (after the header)
+    response_answer = data[??+len(question):]
     offset = 0
     for _ in range(ANCOUNT):
-        # Parse the name
         name_parts = []
         while True:
             length = response_answer[offset]
@@ -76,34 +60,28 @@ def dns_query(type, name, server):
             if length == 0:
                 break
             elif length & 0xc0 == 0xc0:
-                # Pointer
                 pointer = struct.unpack('!H', response_answer[offset-1:offset+1])[0] & 0x3fff
                 offset += 1
-                name_parts.append(parse_name(data, pointer)) # For those curious, parse_name() parses the rest of the domain name, and we append the result to the name_parts list.
+                name_parts.append(parse_name(data, pointer))
                 break
             else:
-                # Label
                 label = response_answer[offset:offset+length].decode('ascii')
                 offset += length
                 name_parts.append(label)
         name = '.'.join(name_parts)
 
-        # Parse the type, class, TTL, and RDLENGTH
-        type, cls, ttl, rdlength = struct.unpack('!HHIH', response_answer[offset:offset+????]) # What is the offset value in bytes? Remember 'H' represent 2 bytes, and 'I' represents 4 bytes, we declared '!HHIH'. 
+        type, cls, ttl, rdlength = struct.unpack('!HHIH', response_answer[offset:offset+????]) 
         
-        offset += ???? # Same value as just calculated
+        offset += ????
 
-        # Parse the RDATA
         rdata = response_answer[offset:offset+rdlength]
         offset += rdlength
 
-        if type == ?????: # Lookup Type value
-            # A record (IPv4 address)
+        if type == ?????:
             ipv4 = socket.inet_ntop(socket.AF_INET, rdata)
             print(f'{name} has IPv4 address {ipv4}')
             return ipv4
-        elif type == ?????: # Lookup Type value
-            # AAAA record (IPv6 address)
+        elif type == ?????: 
             ipv6 = socket.inet_ntop(socket.AF_INET6, rdata)
             print(f'{name} has IPv6 address {ipv6}')
             return ipv6                
@@ -123,7 +101,7 @@ def parse_name(data, offset):
             break
         else:
             # Label
-            label = data[offset:offset+length].decode('ascii') # HINT
+            label = data[offset:offset+length].decode('ascii')
             offset += length
             name_parts.append(label)
     return '.'.join(name_parts)
@@ -136,4 +114,3 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     result = dns_query(args.type, args.name, args.server)
-
