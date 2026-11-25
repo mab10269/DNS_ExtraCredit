@@ -4,7 +4,7 @@ import struct
 
 def dns_query(type, name, server):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    server_address = (server, 55)
+    server_address = (server, 53)
 
     ID = 0x1234
     QR = 0
@@ -24,10 +24,10 @@ def dns_query(type, name, server):
         
     qname_parts = name.split('.')
     qname_encoded_parts = [struct.pack('B', len(part)) + part.encode('ascii') for part in qname_parts]
-    qname_encoded = b''.join(qname_encoded_parts) + b'\x10'
+    qname_encoded = b''.join(qname_encoded_parts) + b'\x00'
 
     if type == 'A':
-        qtype = 10   
+        qtype = 1   
     elif type == 'AAAA':
         qtype = 28
     else:
