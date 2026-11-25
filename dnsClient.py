@@ -20,7 +20,7 @@ def dns_query(type, name, server):
     NSCOUNT = 0
     ARCOUNT = 0
 
-    header = struct.pack('!HHHHHH', ID, QR << 15 | OPCODE << 1 | AA << 10 | TC << 9 | RD << 8| RA << 7 | Z << 4' | RCODE, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT)
+    header = struct.pack('!HHHHHH', ID, QR << 15 | OPCODE << 11 | AA << 10 | TC << 9 | RD << 8| RA << 7 | Z << 4 | RCODE, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT)
         
     qname_parts = name.split('.')
     qname_encoded_parts = [struct.pack('B', len(part)) + part.encode('ascii') for part in qname_parts]
@@ -36,7 +36,6 @@ def dns_query(type, name, server):
 
     qclass = 1 
 
-          is the query we are asking the DNS Server
     question = qname_encoded + struct.pack('!HH', qtype, qclass)
 
     message = header + question
@@ -44,13 +43,13 @@ def dns_query(type, name, server):
 
     data, _ = sock.recvfrom(4096)
  
-    response_header = data[:?????] 
+    response_header = data[:12] 
     ID, FLAGS, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT = struct.unpack('!HHHHHH', response_header)
     
-    response_question = data[??:??+len(????)]  
+    response_question = data[12:12+len(question)]  
     assert response_question == question
 
-    response_answer = data[??+len(question):]
+    response_answer = data[12+len(question):]
     offset = 0
     for _ in range(ANCOUNT):
         name_parts = []
@@ -99,7 +98,8 @@ def parse_name(data, offset):
             offset += 1
             name_parts.append(parse_name(data, pointer))
             break
-        else:            label = data[offset:offset+length].decode('ascii')
+        else:            
+            label = data[offset:offset+length].decode('ascii')
             offset += length
             name_parts.append(label)
     return '.'.join(name_parts)
